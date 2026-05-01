@@ -1,0 +1,17 @@
+printf(string s);
+
+int add(int a, int b) {
+    return a + b;
+}
+
+int f(int a, int b, int c, int d) {
+    return a+b*c+d;
+}
+
+int main() {
+    int x = 5;
+    int y = 10;
+    int z = 3;
+    int w = 4;
+    return f(x, y, z, w);
+}

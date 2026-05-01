@@ -1,0 +1,17 @@
+services:
+  shell-s390x:
+    build: .
+    platform: linux/s390x
+    working_dir: /s2a
+    volumes:
+      - ./:/s2a 
+    tty: true
+    stdin_open: true
+    command: |
+      bash -c '
+      set -euo pipefail
+      rm -rf build/CMakeCache.txt build/CMakeFiles
+      cmake -S . -B build
+      cmake --build build -j
+      exec bash
+      '

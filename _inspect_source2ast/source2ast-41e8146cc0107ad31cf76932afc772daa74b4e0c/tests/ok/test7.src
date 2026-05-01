@@ -1,0 +1,19 @@
+int puts(string s);
+
+class Base {
+    public int value;
+    private int hidden;
+}
+
+class Derived : Base {
+    public int extra;
+    private int secret;
+}
+
+int main() {
+    puts("Test 7: Classes with inheritance\n");
+    puts("Base class has: value (public), hidden (private)\n");
+    puts("Derived class extends Base and adds: extra (public), secret (private)\n");
+    return 0;
+}
+

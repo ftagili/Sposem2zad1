@@ -1,0 +1,8 @@
+int printf(string s);
+
+int main()
+{
+	printf("Hello\n");
+	return 0;
+}
+

@@ -1,0 +1,100 @@
+int puts(string s);
+int putchar(int c);
+int printf(string format, int value);
+int gets(string buf);
+int atoi(string buf);
+int getchar();
+string malloc(int size);
+
+int print_int(int x) {
+    int q = 0;
+    int r = 0;
+
+    if (x < 0) {
+        putchar('-');
+        x = 0 - x;
+    }
+
+    if (x >= 10) {
+        q = x / 10;
+        print_int(q);
+    }
+
+    r = x % 10;
+    putchar('0' + r);
+    return 0;
+}
+
+int main() {
+    int result = 0;
+    int num = 0;
+    int op = 0;
+    int c = 0;
+    string buf;
+
+    buf = malloc(128);
+    
+    while (1) {
+        puts("Enter operation:\n");
+
+        /* пропускаем пробелы/таб/переводы строк */
+        while (1) {
+            op = getchar();
+            if (op < 0) {
+                break;
+            }
+            if (op == 10) {
+                /* '\n' */
+            } else if (op == ' ') {
+
+            } else if (op == 9) {
+                /* '\t' */
+            } else {
+                break;
+            }
+        }
+
+        if (op < 0) {
+            break;
+        }
+
+        /* дочищаем остаток строки до '\n' */
+        while (1) {
+            c = getchar();
+            if (c < 0) {
+                break;
+            }
+            if (c == 10) {
+                break;
+            }
+        }
+
+        if (op == '0') {
+            break;
+        }
+        
+        puts("Enter number:\n");
+        if (gets(buf) == 0) {
+            break;
+        }
+        num = atoi(buf);
+        
+        if (op == '+') {
+            result = result + num;
+        } else if (op == '-') {
+            result = result - num;
+        } else if (op == '*') {
+            result = result * num;
+        } else if (op == '/') {
+            if (num != 0) {
+                result = result / num;
+            }
+        } 
+        puts("Result:");
+        print_int(result);
+        /* '\n' */
+        putchar(10);
+    }
+    
+    return result;
+}

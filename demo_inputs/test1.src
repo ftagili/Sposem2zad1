@@ -1,0 +1,91 @@
+Pipe openPipeDevice(int address);
+Pipe createPipe();
+Stream getInputStream(Pipe pipe);
+Stream getOutputStream(Pipe pipe);
+int createThread(int procId, int params);
+int waitAllThreads();
+
+int makePrintParams(Stream output, int repeatCount);
+int makeJoinParams(Stream left, Stream right, Stream output);
+
+Stream getFirstInput(int params);
+Stream getSecondInput(int params);
+Stream getOutput(int params);
+int getRepeatCount(int params);
+bool canRead(Stream input);
+int readInt(Stream input);
+int writeInt(Stream output, int value);
+int closeWriter(Stream output);
+
+int PrintOnesProc(int params) {
+    Stream output = getOutput(params);
+    int remaining = getRepeatCount(params);
+
+    while (remaining > 0) {
+        writeInt(output, 1111);
+        remaining = remaining - 1;
+    }
+
+    closeWriter(output);
+    return 0;
+}
+
+int PrintTwosProc(int params) {
+    Stream output = getOutput(params);
+    int remaining = getRepeatCount(params);
+
+    while (remaining > 0) {
+        writeInt(output, 2222);
+        remaining = remaining - 1;
+    }
+
+    closeWriter(output);
+    return 0;
+}
+
+int JoinPrinterResultsProc(int params) {
+    Stream leftInput = getFirstInput(params);
+    Stream rightInput = getSecondInput(params);
+    Stream output = getOutput(params);
+    int leftDone = 0;
+    int rightDone = 0;
+    int keepRunning = 1;
+
+    while (keepRunning) {
+        if (leftDone == 0) {
+            if (canRead(leftInput)) {
+                writeInt(output, readInt(leftInput));
+            } else {
+                leftDone = 1;
+            }
+        }
+
+        if (rightDone == 0) {
+            if (canRead(rightInput)) {
+                writeInt(output, readInt(rightInput));
+            } else {
+                rightDone = 1;
+            }
+        }
+
+        keepRunning = 0;
+        if (leftDone == 0) {
+            keepRunning = 1;
+        }
+        if (rightDone == 0) {
+            keepRunning = 1;
+        }
+    }
+
+    closeWriter(output);
+    return 0;
+}
+
+int main() {
+    Pipe resultsPipe = openPipeDevice(0x030000);
+
+    createThread(PrintOnesProc, makePrintParams(getOutputStream(resultsPipe), 64));
+    createThread(PrintTwosProc, makePrintParams(getOutputStream(resultsPipe), 64));
+
+    return waitAllThreads();
+}

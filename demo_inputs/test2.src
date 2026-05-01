@@ -1,0 +1,135 @@
+Pipe openPipeDevice(int address);
+Pipe createPipe();
+Stream getInputStream(Pipe pipe);
+Stream getOutputStream(Pipe pipe);
+int createThread(int procId, int params);
+int makeSourceParams(Stream input, Stream output);
+int makeSrtParams(Stream input, Stream output, int burstMin, int burstMax, int meanGapT10);
+int makeReportParams(Stream input, Stream output);
+int waitAllThreads();
+
+Stream getFirstInput(int params);
+Stream getOutput(int params);
+int getBurstMin(int params);
+int getBurstMax(int params);
+int getMeanGapT10(int params);
+bool canRead(Stream input);
+int closeWriter(Stream output);
+
+Task readTask(Stream input);
+int writeTask(Stream output, Task task);
+TaskQueue createTaskQueue();
+bool hasTasks(TaskQueue queue);
+int pushByRemainingTime(TaskQueue queue, Task task);
+Task popFirstTask(TaskQueue queue);
+Task peekFirstTask(TaskQueue queue);
+Task executeOneTick(Task task);
+int getRemainingTime(Task task);
+
+ScheduleEvent makeScheduleEvent(Task task);
+int writeScheduleEvent(Stream output, ScheduleEvent event);
+ScheduleEvent readScheduleEvent(Stream input);
+
+ReportState createReportState();
+ReportState applyScheduleEvent(ReportState state, ScheduleEvent event);
+int writeText(Stream output, string text);
+string formatSrtReport(ReportState state, int burstMin, int burstMax, int meanGapT10);
+
+int WorkloadSourceProc(int params) {
+    Stream input = getFirstInput(params);
+    Stream output = getOutput(params);
+
+    while (canRead(input)) {
+        writeTask(output, readTask(input));
+    }
+
+    closeWriter(output);
+    return 0;
+}
+
+int SrtSchedulerProc(int params) {
+    Stream input = getFirstInput(params);
+    Stream output = getOutput(params);
+    TaskQueue readyQueue = createTaskQueue();
+    Task current;
+    bool hasCurrent = false;
+    int keepRunning = 1;
+
+    while (keepRunning) {
+        if (canRead(input)) {
+            Task incoming = readTask(input);
+            pushByRemainingTime(readyQueue, incoming);
+        }
+
+        if (hasCurrent == false) {
+            if (hasTasks(readyQueue)) {
+                current = popFirstTask(readyQueue);
+                hasCurrent = true;
+            }
+        }
+
+        if (hasCurrent) {
+            if (hasTasks(readyQueue)) {
+                Task candidate = peekFirstTask(readyQueue);
+                if (getRemainingTime(candidate) < getRemainingTime(current)) {
+                    pushByRemainingTime(readyQueue, current);
+                    current = popFirstTask(readyQueue);
+                }
+            }
+
+            current = executeOneTick(current);
+            writeScheduleEvent(output, makeScheduleEvent(current));
+
+            if (getRemainingTime(current) == 0) {
+                hasCurrent = false;
+            }
+        }
+
+        keepRunning = 0;
+        if (canRead(input)) {
+            keepRunning = 1;
+        }
+        if (hasTasks(readyQueue)) {
+            keepRunning = 1;
+        }
+        if (hasCurrent) {
+            keepRunning = 1;
+        }
+    }
+
+    closeWriter(output);
+    return 0;
+}
+
+int SchedulerReportProc(int params) {
+    Stream input = getFirstInput(params);
+    Stream output = getOutput(params);
+    ReportState report = createReportState();
+
+    while (canRead(input)) {
+        report = applyScheduleEvent(report, readScheduleEvent(input));
+    }
+
+    writeText(output,
+              formatSrtReport(report, getBurstMin(params), getBurstMax(params),
+                              getMeanGapT10(params)));
+    closeWriter(output);
+    return 0;
+}
+
+int main() {
+    Pipe rawTasksPipe = openPipeDevice(0x010000);
+    Pipe scheduledPipe = createPipe();
+    Pipe reportItemsPipe = createPipe();
+    Pipe resultsPipe = openPipeDevice(0x030100);
+
+    createThread(WorkloadSourceProc,
+                 makeSourceParams(getInputStream(rawTasksPipe), getOutputStream(scheduledPipe)));
+    createThread(SrtSchedulerProc,
+                 makeSrtParams(getInputStream(scheduledPipe), getOutputStream(reportItemsPipe),
+                               4, 10, 105));
+    createThread(SchedulerReportProc,
+                 makeReportParams(getInputStream(reportItemsPipe), getOutputStream(resultsPipe)));
+
+    return waitAllThreads();
+}
