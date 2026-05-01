@@ -22,7 +22,7 @@ int PrintOnesProc(int params) {
     int remaining = getRepeatCount(params);
 
     while (remaining > 0) {
-        writeInt(output, 1111);
+        writeInt(output, 1);
         remaining = remaining - 1;
     }
 
@@ -35,7 +35,7 @@ int PrintTwosProc(int params) {
     int remaining = getRepeatCount(params);
 
     while (remaining > 0) {
-        writeInt(output, 2222);
+        writeInt(output, 2);
         remaining = remaining - 1;
     }
 
